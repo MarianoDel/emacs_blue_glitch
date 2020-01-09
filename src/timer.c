@@ -117,31 +117,32 @@ void TIM_1_Init (void)
     //TIM1->CR1 |= TIM_CR1_OPM;        //clk int / 1; upcounting; one pulse
     TIM1->CR1 = 0x00;        //clk int / 1;
     // TIM1->CR1 |= TIM_CR1_ARPE;        //clk int / 1, Preload;
-    TIM1->CR2 |= TIM_CR2_MMS_1;        //UEV -> TRG0
-    //TIM1->CR2 = 0x00;
+    // TIM1->CR2 |= TIM_CR2_MMS_1;        //UEV -> TRG0
+    TIM1->CR2 = 0x00;
     //TIM1->SMCR |= TIM_SMCR_MSM | TIM_SMCR_SMS_2 | TIM_SMCR_SMS_1 | TIM_SMCR_TS_1;    //link timer3
     TIM1->SMCR = 0x0000;
 
-    TIM1->CCMR1 = 0x6060;            //CH1 CH2 output PWM mode 1 (channel active TIM1->CNT < TIM1->CCR1)
+    TIM1->CCMR1 = 0x0060;            //CH1 output PWM mode 1 (channel active TIM1->CNT < TIM1->CCR1)
 #ifdef USE_CHANNELS_WITH_PRELOAD
     TIM1->CCMR1 |= TIM_CCMR1_OC1PE | TIM_CCMR1_OC2PE;
 #endif
     TIM1->CCMR2 = 0x0000;
-    TIM1->CCER |= TIM_CCER_CC1NE | TIM_CCER_CC1NP | TIM_CCER_CC2NE | TIM_CCER_CC2NP;
+    // TIM1->CCER |= TIM_CCER_CC1NE | TIM_CCER_CC1NP | TIM_CCER_CC2NE | TIM_CCER_CC2NP;
+    TIM1->CCER |= TIM_CCER_CC1E;
         
     TIM1->BDTR |= TIM_BDTR_MOE;
     TIM1->ARR = DUTY_100_PERCENT;    //cada tick 20.83ns con PSC = 0
 
     TIM1->CNT = 0;
-#if defined USE_FREQ_18KHZ
-    TIM1->PSC = 3;
-#elif defined USE_FREQ_9KHZ
-    TIM1->PSC = 7;
-#elif defined USE_FREQ_4_5KHZ
-    TIM1->PSC = 15;
-#else
-#error "Select working frequency on hard.h"
-#endif
+// #if defined USE_FREQ_18KHZ
+//     TIM1->PSC = 3;
+// #elif defined USE_FREQ_9KHZ
+//     TIM1->PSC = 7;
+// #elif defined USE_FREQ_4_5KHZ
+//     TIM1->PSC = 15;
+// #else
+// #error "Select working frequency on hard.h"
+// #endif
 
     // Enable timer ver UDIS
     //TIM1->DIER |= TIM_DIER_UIE;

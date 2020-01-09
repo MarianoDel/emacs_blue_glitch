@@ -97,54 +97,55 @@ void GpioInit (void)
         RCC_GPIOD_CLKEN;
 
     //--- GPIOA Low Side ------------------//
-    temp = GPIOA->CRL;    //PA0 Input pull-up (Interrupt) PA2-PA3 Alternative (Usart2); 
-    temp &= 0xF00F00F0;    //PA5 input floating; PA6 Alternative (TIM3_CH1)
-    temp |= 0x0A408A08;    
-    GPIOA->CRL = temp;
+    // temp = GPIOA->CRL;    //PA0 Input pull-up (Interrupt) PA2-PA3 Alternative (Usart2); 
+    // temp &= 0xF00F00F0;    //PA5 input floating; PA6 Alternative (TIM3_CH1)
+    // temp |= 0x0A408A08;    
+    // GPIOA->CRL = temp;
 
     //--- GPIOA High Side ------------------//
     temp = GPIOA->CRH;    //PA8 Alterantive (TIM1_CH1); PA9-PA10 Alternative (Usart1);
-    temp &= 0x0FFFF000;    //PA15 input w/pu
-    temp |= 0x800008AA;
+    temp &= 0xFFFFF000;   
+    temp |= 0x000008AA;
+    // temp |= 0x000008A2;    //PA8 output
     GPIOA->CRH = temp;
 
     //--- GPIOA Pull-Up Pull-Dwn ------------------//
-    temp = GPIOA->ODR;    //PA0 pull-up PA3 pull-up
-    temp &= 0x7FF6;    //PA15 pull-up
-    temp |= 0x8009;
-    GPIOA->ODR = temp;
+    // temp = GPIOA->ODR;    //PA0 pull-up PA3 pull-up
+    // temp &= 0x7FF6;    //PA15 pull-up
+    // temp |= 0x8009;
+    // GPIOA->ODR = temp;
     
     //--- GPIOB Low Side -------------------//
-    temp = GPIOB->CRL;    //PB5 output
-    temp &= 0xFF0FFFFF;
-    temp |= 0x00200000;
-    GPIOB->CRL = temp;
+    // temp = GPIOB->CRL;    //PB5 output
+    // temp &= 0xFF0FFFFF;
+    // temp |= 0x00200000;
+    // GPIOB->CRL = temp;
 
     //--- GPIOB High Side -------------------//
-    temp = GPIOB->CRH;    //PB10-PB11 Alternative (Usart3); PB13 - PB14 Alternative (TIM1)
-    temp &= 0x000F00FF;
-    temp |= 0x4AA08A00;
+    temp = GPIOB->CRH;    //PB8 PB9 output; PB10-PB11 Alternative (Usart3)
+    temp &= 0xFFFF0000;
+    temp |= 0x00008A22;
     GPIOB->CRH = temp;    
     
     //--- GPIOC Low Side -------------------//
-    temp = GPIOC->CRL;    //PC0-PC1 output; PC6-PC7 output
-    temp &= 0x00FFFF00;
-    temp |= 0x22000022;
-    GPIOC->CRL = temp;
+    // temp = GPIOC->CRL;    //PC0-PC1 output; PC6-PC7 output
+    // temp &= 0x00FFFF00;
+    // temp |= 0x22000022;
+    // GPIOC->CRL = temp;
 
     //--- GPIOC High Side -------------------//    
     temp = GPIOC->CRH;    
     // temp &= 0xFFF00000;    //PC8-PC9 Input; PC10-PC11 Alternative (Uart4); PC12 Alterantive (Uart5)
     // temp |= 0x000A8A88;
-    temp &= 0xFF0FFFFF;    //PC13 output
+    temp &= 0xFF0FFFFF;    //PC13 output On Board LED
     temp |= 0x00200000;
     GPIOC->CRH = temp;
 
     //--- GPIOD Low Side -------------------//
-    temp = GPIOD->CRL;    //PD2 Alterantive (Uart5)
-    temp &= 0xFFFFF0FF;    
-    temp |= 0x00000A00;
-    GPIOD->CRL = temp;
+    // temp = GPIOD->CRL;    //PD2 Alterantive (Uart5)
+    // temp &= 0xFFFFF0FF;    
+    // temp |= 0x00000A00;
+    // GPIOD->CRL = temp;
 
 #ifdef USE_EXTERNAL_INTS
     //Interrupt en PA4 y PA5

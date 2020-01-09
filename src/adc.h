@@ -1,11 +1,31 @@
-#ifndef ADC_H_
-#define ADC_H_
+//---------------------------------------------
+// ##
+// ## @Author: Med
+// ## @Editor: Emacs - ggtags
+// ## @TAGS:   Global
+// ## @CPU:    STM32F103
+// ##
+// #### ADC.H #################################
+//---------------------------------------------
+#ifndef _ADC_H_
+#define _ADC_H_
 
-void  ADC1_Init(void);
-unsigned char ADC1_Muestrear (unsigned char canal, unsigned short * valorMedido);
-unsigned char ADC1_Scan (unsigned char canales, unsigned short * valorMedido);
-void ADC_TIM7_ISR(void);
 
+// Defines for Configuration ---------------------------------------------------
+
+
+// Module Exported Constants ---------------------------------------------------
+#define RCC_ADC1_CLK (RCC->APB2ENR & 0x00000200)
+#define RCC_ADC1_CLKEN RCC->APB2ENR |= 0x00000200
+#define RCC_ADC1_CLKDIS RCC->APB2ENR &= ~0x00000200
+
+#define RCC_ADC2_CLK (RCC->APB2ENR & 0x00000400)
+#define RCC_ADC2_CLKEN RCC->APB2ENR |= 0x00000400
+#define RCC_ADC2_CLKDIS RCC->APB2ENR &= ~0x00000400
+
+#define RCC_ADC3_CLK (RCC->APB2ENR & 0x00008000)
+#define RCC_ADC3_CLKEN RCC->APB2ENR |= 0x00008000
+#define RCC_ADC3_CLKDIS RCC->APB2ENR &= ~0x00008000
 
 enum canalADC
 {
@@ -17,4 +37,13 @@ enum canalADC
 	ADC_CHANNEL6 = 0x20
 };
 
-#endif
+
+// Module Exported Functions ---------------------------------------------------
+void  ADC1_Init(void);
+unsigned char ADC1_Muestrear (unsigned char canal, unsigned short * valorMedido);
+unsigned char ADC1_Scan (unsigned char canales, unsigned short * valorMedido);
+void ADC_TIM7_ISR(void);
+
+
+#endif    /* _ADC_H_ */
+

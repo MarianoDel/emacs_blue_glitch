@@ -55,16 +55,7 @@ volatile unsigned short timer_standby = 0;
 
 
 /* Globals ------------------------------------------------------------------*/
-#define SIZEOF_SIGNAL    50
 
-unsigned short mem_signal [SIZEOF_SIGNAL] = {62,125,187,248,309,368,425,481,535,587,
-                                             637,684,728,770,809,844,876,904,929,951,
-                                             968,982,992,998,1000,998,992,982,968,951,
-                                             929,904,876,844,809,770,728,684,637,587,
-                                             535,481,425,368,309,248,187,125,62,0};
-
-
-unsigned short * p_signal;
 
 //--- Module Functions Declarations ----------
 void TimingDelay_Decrement(void);
@@ -74,16 +65,11 @@ extern void EXTI0_IRQHandler (void);
 
 int main (void)
 {
-    unsigned char i = 0;
-    unsigned long ii = 0;
-#if (defined INVERTER_SQUARE_MODE) || (defined INVERTER_PURE_SINUSOIDAL)
-    pin_state_t pin_state = ON_LEFT;
-#endif
+    // System Clock is already configured at this point
 
-#ifdef INVERTER_QUASI_SINE_WAVE
-    pin_state_t pin_state = ON_LEFT_RISING;
-#endif
-
+    // Set Gpios
+    GpioInit ();
+    
     //Configuracion systick    
     if (SysTick_Config(72000))
     {
@@ -94,7 +80,7 @@ int main (void)
             else
                 LED_ON;
 
-            for (i = 0; i < 255; i++)
+            for (unsigned char i = 0; i < 255; i++)
             {
                 asm (	"nop \n\t"
                         "nop \n\t"
@@ -103,11 +89,23 @@ int main (void)
         }
     }
 
-    // Configuracion led. & Enabled Channels
-    GpioInit();
-
+    // Activate Pulses on Timer1
+    TIM_1_Init();
+    Update_TIM1_CH1(DUTY_50_PERCENT);
+    while (1);
+    
+        
     //enciendo usart1
     Usart1Config();
+
+    while (1)
+    {
+        Wait_ms(1800);
+        LED_ON;
+        Usart1Send("Prueba\n");
+        Wait_ms(200);
+        LED_OFF;
+    }
 
     // //enciendo usart2 para comunicacion con micros
     // Usart2Config();
@@ -132,283 +130,11 @@ int main (void)
     Wait_ms(100);
 #endif
 
-    TIM_1_Init();
+
     TIM_4_Init();
     
-#ifdef INVERTER_SQUARE_MODE
-    PIN_LEFT_OFF;
-    PIN_RIGHT_OFF;
-    while (1)
-    {
-        if (JUMPER_PROT)
-        {
-            PIN_LEFT_OFF;
-            PIN_RIGHT_OFF;
-            pin_state = JUMPER_PROTECTED;
-            timer_standby = 1000;
-        }
-        
-        switch (pin_state)
-        {
-        case ON_LEFT:
-            if (TIM4->CNT > TT_ON)
-            {
-                TIM4->CNT = 0;
-                PIN_LEFT_OFF;
-                pin_state = WAIT_DEAD_TIME_LEFT;
-            }
-            break;
 
-        case WAIT_DEAD_TIME_LEFT:
-            if (TIM4->CNT > TT_DEAD_TIME)
-            {                
-                TIM4->CNT = 0;
-                PIN_RIGHT_ON;
-                pin_state = ON_RIGHT;
-            }
-            break;
 
-        case ON_RIGHT:
-            if (TIM4->CNT > TT_ON)
-            {
-                TIM4->CNT = 0;
-                PIN_RIGHT_OFF;
-                pin_state = WAIT_DEAD_TIME_RIGHT;
-            }
-            break;
-
-        case WAIT_DEAD_TIME_RIGHT:
-            if (TIM4->CNT > TT_DEAD_TIME)
-            {                
-                TIM4->CNT = 0;
-                PIN_LEFT_ON;
-                pin_state = ON_LEFT;
-            }
-            break;
-
-        case JUMPER_PROTECTED:
-            if (!timer_standby)
-            {
-                if (!JUMPER_PROT)
-                {
-                    TIM4->CNT = 0;
-                    PIN_LEFT_ON;
-                    pin_state = ON_LEFT;
-                }
-            }
-            break;
-            
-        default:
-            TIM4->CNT = 0;
-            PIN_LEFT_ON;
-            pin_state = ON_LEFT;
-            break;
-        }
-    }
-#endif    //INVERTER_SQUARE_MODE
-
-#ifdef INVERTER_QUASI_SINE_WAVE
-    PIN_LEFT_OFF;
-    PIN_RIGHT_OFF;    
-    while (1)
-    {
-        if (JUMPER_PROT)
-        {
-            PIN_LEFT_OFF;
-            PIN_RIGHT_OFF;
-            pin_state = JUMPER_PROTECTED;
-            timer_standby = 1000;
-        }
-
-        switch (pin_state)
-        {
-        case ON_LEFT_RISING:
-            if (TIM4->CNT > TT_THIRD)
-            {
-                TIM4->CNT = 0;
-                PIN_LEFT_ON;
-                pin_state = ON_LEFT_FULL;
-            }
-            break;
-
-        case ON_LEFT_FULL:
-            if (TIM4->CNT > TT_THIRD)
-            {
-                TIM4->CNT = 0;
-                PIN_LEFT_50;
-                pin_state = ON_LEFT_FALLING;
-            }
-            break;
-            
-        case ON_LEFT_FALLING:
-            if (TIM4->CNT > TT_THIRD)
-            {
-                TIM4->CNT = 0;
-                PIN_LEFT_OFF;
-                pin_state = WAIT_DEAD_TIME_LEFT;
-            }
-            break;
-            
-        case WAIT_DEAD_TIME_LEFT:
-            if (TIM4->CNT > TT_DEAD_TIME)
-            {                
-                TIM4->CNT = 0;
-                PIN_RIGHT_50;
-                pin_state = ON_RIGHT_RISING;
-            }
-            break;
-
-        case ON_RIGHT_RISING:
-            if (TIM4->CNT > TT_THIRD)
-            {
-                TIM4->CNT = 0;
-                PIN_RIGHT_ON;
-                pin_state = ON_RIGHT_FULL;
-            }
-            break;
-
-        case ON_RIGHT_FULL:
-            if (TIM4->CNT > TT_THIRD)
-            {
-                TIM4->CNT = 0;
-                PIN_RIGHT_50;
-                pin_state = ON_RIGHT_FALLING;
-            }
-            break;
-
-        case ON_RIGHT_FALLING:
-            if (TIM4->CNT > TT_THIRD)
-            {
-                TIM4->CNT = 0;
-                PIN_RIGHT_OFF;
-                pin_state = WAIT_DEAD_TIME_RIGHT;
-            }
-            break;
-            
-        case WAIT_DEAD_TIME_RIGHT:
-            if (TIM4->CNT > TT_DEAD_TIME)
-            {                
-                TIM4->CNT = 0;
-                PIN_LEFT_50;
-                pin_state = ON_LEFT_RISING;
-            }
-            break;
-
-        case JUMPER_PROTECTED:
-            if (!timer_standby)
-            {
-                if (!JUMPER_PROT)
-                {
-                    TIM4->CNT = 0;
-                    PIN_LEFT_ON;
-                    pin_state = ON_LEFT_RISING;
-                }
-            }
-            break;
-            
-        default:
-            TIM4->CNT = 0;
-            PIN_LEFT_50;
-            pin_state = ON_LEFT_RISING;
-            break;
-        }
-    }
-#endif    //INVERTER_QUASI_SINE_WAVE
-
-#ifdef INVERTER_PURE_SINUSOIDAL
-    p_signal = mem_signal;
-    
-    PIN_LEFT_OFF;
-    PIN_RIGHT_OFF;    
-    while (1)
-    {
-        if (JUMPER_PROT)
-        {
-            PIN_LEFT_OFF;
-            PIN_RIGHT_OFF;
-            pin_state = JUMPER_PROTECTED;
-            timer_standby = 1000;
-        }
-        
-        switch (pin_state)
-        {
-        case ON_LEFT:
-            if (TIM4->CNT >= TT_SINE_POINT)
-            {
-                TIM4->CNT = 0;
-
-                if (p_signal < &mem_signal[(SIZEOF_SIGNAL - 1)])
-                {                    
-                    p_signal++;
-                    PIN_LEFT_PWM(*p_signal);
-                }
-                else
-                {
-                    //termine senial
-                    PIN_LEFT_PWM(DUTY_NONE);
-                    pin_state = WAIT_DEAD_TIME_LEFT;
-                }
-            }
-            break;
-            
-        case WAIT_DEAD_TIME_LEFT:
-            if (TIM4->CNT > TT_DEAD_TIME)
-            {                
-                TIM4->CNT = 0;
-                pin_state = ON_RIGHT;
-                p_signal = mem_signal;
-            }
-            break;
-
-        case ON_RIGHT:
-            if (TIM4->CNT >= TT_SINE_POINT)
-            {
-                TIM4->CNT = 0;
-
-                if (p_signal < &mem_signal[(SIZEOF_SIGNAL - 1)])
-                {                    
-                    p_signal++;
-                    PIN_RIGHT_PWM(*p_signal);
-                }
-                else
-                {
-                    //termine senial
-                    PIN_RIGHT_PWM(DUTY_NONE);
-                    pin_state = WAIT_DEAD_TIME_RIGHT;
-                }
-            }
-            break;
-            
-        case WAIT_DEAD_TIME_RIGHT:
-            if (TIM4->CNT > TT_DEAD_TIME)
-            {                
-                TIM4->CNT = 0;
-                pin_state = ON_LEFT;
-                p_signal = mem_signal;
-            }
-            break;
-
-        case JUMPER_PROTECTED:
-            if (!timer_standby)
-            {
-                if (!JUMPER_PROT)
-                {
-                    TIM4->CNT = 0;
-                    PIN_LEFT_ON;
-                    pin_state = ON_LEFT;
-                }
-            }
-            break;
-            
-        default:
-            TIM4->CNT = 0;
-            PIN_LEFT_OFF;
-            PIN_RIGHT_OFF;
-            pin_state = ON_LEFT;
-            break;
-        }
-    }
-#endif    //INVERTER_PURE_SINUSOIDAL
     
 }
 
@@ -446,24 +172,6 @@ void EXTI0_IRQHandler (void)
         else
             LED_ON;
 
-        if (SENSE_MOSFET_A)
-        {
-            DisablePreload_MosfetA();
-            UpdateTIM_MosfetA(0);
-            EnablePreload_MosfetA();
-            UpdateTIM_MosfetA(DUTY_FOR_DMAX);            
-        }
-        else if (SENSE_MOSFET_B)
-        {
-            DisablePreload_MosfetB();
-            UpdateTIM_MosfetB(0);
-            EnablePreload_MosfetB();
-            UpdateTIM_MosfetB(DUTY_FOR_DMAX);
-        }
-        else
-        {
-            //llegue tarde
-        }
         
         EXTI->PR |= 0x00000001;
     }

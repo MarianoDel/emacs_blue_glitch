@@ -8,14 +8,13 @@
 // #### GPIO.H ################################
 //---------------------------------------------
 
-#ifndef __GPIO_H_
-#define __GPIO_H_
+#ifndef _GPIO_H_
+#define _GPIO_H_
 
-//-- Configurations
+// Defines for Configuration ---------------------------------------------------
 // #define USE_EXTERNAL_INTS
 
-//-- Exported Macros --------------------
-
+// Module Exported Constants ---------------------------------------------------
 //--- RCC clkEnable ---//
 #define RCC_GPIOA_CLK (RCC->APB2ENR & 0x00000004)
 #define RCC_GPIOA_CLKEN RCC->APB2ENR |= 0x00000004
@@ -115,9 +114,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 
-//--- Exported Functions ------------------------------
+// Module Exported Functions ---------------------------------------------------
 void GpioInit(void);
 void EXTIOn (void);
 void EXTIOff (void);
 
-#endif
+
+#endif    /* _GPIO_H_ */
