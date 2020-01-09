@@ -89,12 +89,19 @@ int main (void)
         }
     }
 
+#ifdef HARD_TEST_MODE_TIMER1_OPM
     // Activate Pulses on Timer1
     TIM_1_Init();
     Update_TIM1_CH1(DUTY_50_PERCENT);
-    while (1);
+    while (1)
+    {
+        Wait_ms(1);
+        ENABLE_TIM1;
+    }
+#endif
     
-        
+
+#ifdef HARD_TEST_MODE_USART1_TX    
     //enciendo usart1
     Usart1Config();
 
@@ -102,11 +109,69 @@ int main (void)
     {
         Wait_ms(1800);
         LED_ON;
-        Usart1Send("Prueba\n");
+        Usart1Send("Prueba Usart1\n");
         Wait_ms(200);
         LED_OFF;
     }
+#endif
 
+    
+#ifdef HARD_TEST_MODE_USART1_RX
+    //enciendo usart1
+    Usart1Config();
+    char buff_local [128] = { 0 };
+    unsigned char readed = 0;
+
+    while(1)
+    {
+        Wait_ms(3000);
+        if (usart1_have_data)
+        {
+            usart1_have_data = 0;
+            readed = ReadUsart1Buffer((unsigned char *)buff_local, 127);
+            *(buff_local + readed) = '\n';    //cambio el '\0' por '\n' antes de enviar
+            *(buff_local + readed + 1) = '\0';    //ajusto el '\0'
+            Usart1Send(buff_local);
+        }
+    }    
+#endif
+
+
+#ifdef HARD_TEST_MODE_USART3_TX    
+    //enciendo usart1
+    Usart3Config();
+
+    while (1)
+    {
+        Wait_ms(1800);
+        LED_ON;
+        Usart3Send("Prueba Usart3\n");
+        Wait_ms(200);
+        LED_OFF;
+    }
+#endif
+
+    
+#ifdef HARD_TEST_MODE_USART3_RX
+    //enciendo usart1
+    Usart3Config();
+    char buff_local [128] = { 0 };
+    unsigned char readed = 0;
+
+    while(1)
+    {
+        Wait_ms(3000);
+        if (usart3_have_data)
+        {
+            usart3_have_data = 0;
+            readed = ReadUsart3Buffer((unsigned char *)buff_local, 127);
+            *(buff_local + readed) = '\n';    //cambio el '\0' por '\n' antes de enviar
+            *(buff_local + readed + 1) = '\0';    //ajusto el '\0'
+            Usart3Send(buff_local);
+        }
+    }    
+#endif
+    
     // //enciendo usart2 para comunicacion con micros
     // Usart2Config();
     

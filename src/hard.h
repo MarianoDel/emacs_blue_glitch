@@ -24,6 +24,12 @@
 #define SOFTWARE_VERSION_1_0        //habla contra rpi con programa magneto y traduce a micros potencia
 
 //-------- Type of Program (depending on software version) ----------------
+// #define HARD_TEST_MODE_USART1_TX
+// #define HARD_TEST_MODE_USART1_RX
+// #define HARD_TEST_MODE_USART3_TX
+#define HARD_TEST_MODE_USART3_RX
+// #define HARD_TEST_MODE_TIMER1_OPM
+
 
 //-------- Type of Program and Features ----------------
 

@@ -114,8 +114,8 @@ void TIM_1_Init (void)
         RCC_TIM1_CLKEN;
 
     //Configuracion del timer.
-    //TIM1->CR1 |= TIM_CR1_OPM;        //clk int / 1; upcounting; one pulse
-    TIM1->CR1 = 0x00;        //clk int / 1;
+    TIM1->CR1 |= TIM_CR1_OPM;        //clk int / 1; upcounting; one pulse
+    // TIM1->CR1 = 0x00;        //clk int / 1;
     // TIM1->CR1 |= TIM_CR1_ARPE;        //clk int / 1, Preload;
     // TIM1->CR2 |= TIM_CR2_MMS_1;        //UEV -> TRG0
     TIM1->CR2 = 0x00;
