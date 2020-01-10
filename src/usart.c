@@ -36,6 +36,8 @@ volatile unsigned char * prx1;
 volatile unsigned char tx1buff[SIZEOF_TXDATA];
 volatile unsigned char rx1buff[SIZEOF_RXDATA];
 
+volatile unsigned char autobaud = 0;
+
 //--- USART2 ---//
 volatile unsigned char * ptx2;
 volatile unsigned char * ptx2_pckt_index;
@@ -126,16 +128,10 @@ unsigned char ReadUsart1Buffer (unsigned char * bout, unsigned short max_len)
     len = prx1 - rx1buff;
 
     if (len < max_len)
-    {
-        //el prx1 siempre llega adelantado desde la int, lo corto con un 0
-        *prx1 = '\0';
-        prx1++;
-        len += 1;
         memcpy(bout, (unsigned char *) rx1buff, len);
-    }
     else
     {
-        memcpy(bout, (unsigned char *) rx1buff, len);
+        memcpy(bout, (unsigned char *) rx1buff, max_len);
         len = max_len;
     }
 
@@ -156,18 +152,17 @@ void USART1_IRQHandler (void)
 
         if (prx1 < &rx1buff[SIZEOF_RXDATA - 1])
         {
-            if ((dummy == '\n') || (dummy == '\r') || (dummy == 26))		//26 es CTRL-Z
+            // if ((dummy == '\n') || (dummy == '\r') || (dummy == 26))		//26 es CTRL-Z
+            if (dummy == '\n')                
             {
                 *prx1 = '\0';
                 usart1_have_data = 1;
-                // if (LED)
-                // 	LED_OFF;
-                // else
-                // 	LED_ON;
-
             }
             else
             {
+                if (dummy == '?')
+                    autobaud = 1;
+                
                 *prx1 = dummy;
                 prx1++;
             }
@@ -388,16 +383,10 @@ unsigned char ReadUsart3Buffer (unsigned char * bout, unsigned short max_len)
     len = prx3 - rx3buff;
 
     if (len < max_len)
-    {
-        //el prx3 siempre llega adelantado desde la int, lo corto con un 0
-        *prx3 = '\0';
-        prx3++;
-        len += 1;
         memcpy(bout, (unsigned char *) rx3buff, len);
-    }
     else
     {
-        memcpy(bout, (unsigned char *) rx3buff, len);
+        memcpy(bout, (unsigned char *) rx3buff, max_len);
         len = max_len;
     }
 
@@ -419,8 +408,10 @@ void USART3_IRQHandler (void)
         if (prx3 < &rx3buff[SIZEOF_RXDATA - 1])
         {
             // USART3->DR = (unsigned char) dummy;    //para debug
+            // USART1->DR = (unsigned char) dummy;    //para debug
 
-            if ((dummy == '\n') || (dummy == '\r') || (dummy == 26))		//26 es CTRL-Z
+            // if ((dummy == '\n') || (dummy == '\r') || (dummy == 26))		//26 es CTRL-Z
+            if (dummy == '\n')
             {
                 *prx3 = '\0';
                 usart3_have_data = 1;
@@ -465,6 +456,19 @@ void USART3_IRQHandler (void)
         dummy = USART3->DR;
     }
 }
+
+
+unsigned char Usart1_Autobaud (void)
+{
+    if (autobaud)
+    {
+        autobaud = 0;
+        return 1;
+    }
+    else
+        return 0;
+}
+
 
 #ifdef STM32F10X_HD
 //---- UART4 Functions ----

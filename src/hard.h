@@ -27,9 +27,11 @@
 // #define HARD_TEST_MODE_USART1_TX
 // #define HARD_TEST_MODE_USART1_RX
 // #define HARD_TEST_MODE_USART3_TX
-#define HARD_TEST_MODE_USART3_RX
+// #define HARD_TEST_MODE_USART3_RX
 // #define HARD_TEST_MODE_TIMER1_OPM
 
+#define GLITCHER_WITH_P0_14
+// #define GLITCHER_ALWAYS_GLITCH
 
 //-------- Type of Program and Features ----------------
 
@@ -86,6 +88,16 @@ typedef enum {
 	resp_error
 
 } resp_t;
+
+
+typedef enum {
+	PROG_RESET = 0,
+	PROG_WAIT_AUTOBAUD,
+        PROG_WAIT_SYNC_ON_PC,
+	PROG_IN_ISP
+
+} prog_state_t;
+
 
 
 

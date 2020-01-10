@@ -18,6 +18,7 @@
 #include "usart.h"
 
 #include <stdio.h>
+#include <string.h>
 
 
 
@@ -52,6 +53,7 @@ unsigned short buzzer_timeout = 0;
 volatile unsigned short wait_ms_var = 0;
 volatile unsigned short comms_timeout = 0;
 volatile unsigned short timer_standby = 0;
+volatile unsigned short timer_led = 0;
 
 
 /* Globals ------------------------------------------------------------------*/
@@ -65,6 +67,8 @@ extern void EXTI0_IRQHandler (void);
 
 int main (void)
 {
+    prog_state_t prog_state = PROG_RESET;
+    
     // System Clock is already configured at this point
 
     // Set Gpios
@@ -172,34 +176,139 @@ int main (void)
     }    
 #endif
     
-    // //enciendo usart2 para comunicacion con micros
-    // Usart2Config();
+#ifdef GLITCHER_WITH_P0_14
+    Usart1Config();
+    Usart3Config();
+    char buff_local_pc [128] = { 0 };
+    char buff_local_bd [128] = { 0 };    
+    unsigned char readed = 0;
+
     
+    while (1)
+    {
+        switch(prog_state)
+        {
+        case PROG_RESET:
+            LED_OFF;
+            RESET_ON;
+            Wait_ms(2);
+            P0_14_ON;
+            RESET_OFF;
 
-    //-- Welcome Messages --------------------
-#ifdef HARD
-    Usart1Send(HARD);
-    Wait_ms(100);    
-#else
-#error	"No Hardware defined in hard.h file"
-#endif
+            //reseteo autobaud
+            Usart1_Autobaud();
+            Wait_ms(3);
 
-#ifdef SOFT
-    Usart1Send(SOFT);
-    Wait_ms(100);    
-#else
-#error	"No Soft Version defined in hard.h file"
-#endif
-#ifdef FEATURES
-    Usart1Send((const char *) FEATURES);
-    Wait_ms(100);
-#endif
+            prog_state = PROG_WAIT_AUTOBAUD;
+            timer_standby = 20000;    //espero 20 segundos y vuelvo a resetear
+            LED_ON;
+            break;
 
+        case PROG_WAIT_AUTOBAUD:
+            if (Usart1_Autobaud())
+            {
+                Usart3Send("?");
+                timer_standby = 10000;    //doy 10 segundos de timeout
 
-    TIM_4_Init();
+                if (LED)
+                    LED_OFF;
+                else
+                    LED_ON;
+            }
+
+            if (usart3_have_data)
+            {
+                usart3_have_data = 0;
+
+                readed = ReadUsart3Buffer((unsigned char *)buff_local_bd, 126);
+                //el puerto de la placa recien esta arrancando, tiene error, busco la 'S' del synchro
+                for (unsigned char i = 0; i < readed; i++)
+                {
+                    if (*(buff_local_bd + i) == 'S')
+                    {
+                        i = readed;
+                        Usart1Send("Synchronized\r\n");
+                        prog_state = PROG_WAIT_SYNC_ON_PC;
+                        timer_standby = 10000;    //doy 10 segundos mas
+                    }
+                }
+            }
+
+            if (!timer_standby)
+                prog_state = PROG_RESET;
+            
+            break;
+
+        case PROG_WAIT_SYNC_ON_PC:
+            if (usart1_have_data)
+            {
+                usart1_have_data = 0;
+
+                readed = ReadUsart1Buffer((unsigned char *)buff_local_bd, 126);
+                //viene sucio con ?????
+                for (unsigned char i = 0; i < readed; i++)
+                {
+                    if (*(buff_local_bd + i) == 'S')
+                    {
+                        i = readed;
+                        Usart3Send("Synchronized\r\n");
+                        prog_state = PROG_IN_ISP;
+                        timer_standby = 10000;    //doy 10 segundos mas
+                    }
+                }
+            }
+
+            if (!timer_standby)
+                prog_state = PROG_RESET;
+            
+            break;
+            
+        case PROG_IN_ISP:
+            //Usart1 es la PC, Usart3 la placa a grabar
+            if (usart1_have_data)
+            {
+                usart1_have_data = 0;
+                readed = ReadUsart1Buffer((unsigned char *)buff_local_pc, 127);
+                *(buff_local_pc + readed) = '\n';    //cambio el '\0' por '\n' antes de enviar
+                *(buff_local_pc + readed + 1) = '\0';    //ajusto el '\0'
+                Usart3Send(buff_local_pc);
+                // Usart3SendUnsigned((unsigned char *) buff_local_pc, readed);
+                timer_standby = 10000;    //doy 10 segundos mas
+            }
+
+            if (usart3_have_data)
+            {
+                usart3_have_data = 0;
+                readed = ReadUsart3Buffer((unsigned char *)buff_local_bd, 127);
+                *(buff_local_bd + readed) = '\n';    //cambio el '\0' por '\n' antes de enviar
+                *(buff_local_bd + readed + 1) = '\0';    //ajusto el '\0'
+                Usart1Send(buff_local_bd);
+                // Usart1SendUnsigned((unsigned char *) buff_local_bd, readed);
+                timer_standby = 10000;    //doy 10 segundos mas
+            }
+
+            if (!timer_standby)
+                prog_state = PROG_RESET;
+
+            if (!timer_led)
+            {
+                timer_led = 300;
+                if (LED)
+                    LED_OFF;
+                else
+                    LED_ON;
+            }
+
+            break;
+        }
+    }
     
+    
+#endif
 
-
+#ifdef GLITCHER_ALWAYS_GLITCH
+    
+#endif
     
 }
 
@@ -220,8 +329,8 @@ void TimingDelay_Decrement(void)
     // if (timer_filters)
     //     timer_filters--;
     
-    // if (timer_led)
-    //     timer_led--;
+    if (timer_led)
+        timer_led--;
 
     // if (timer_led_pwm < 0xFFFF)
     //     timer_led_pwm ++;
