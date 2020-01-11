@@ -67,8 +67,6 @@ extern void EXTI0_IRQHandler (void);
 
 int main (void)
 {
-    prog_state_t prog_state = PROG_RESET;
-    
     // System Clock is already configured at this point
 
     // Set Gpios
@@ -177,6 +175,8 @@ int main (void)
 #endif
     
 #ifdef GLITCHER_WITH_P0_14
+    prog_state_t prog_state = PROG_RESET;
+
     Usart1Config();
     Usart3Config();
     char buff_local_pc [128] = { 0 };
@@ -307,6 +307,222 @@ int main (void)
 #endif
 
 #ifdef GLITCHER_ALWAYS_GLITCH
+#define GLITCH_DEBUG_ON
+    
+#define DELAY_INITIAL    200
+#define DELAY_MAX    300
+#define GLITCH_INITIAL    2
+#define GLITCH_MAX    5
+
+    prog_state_t prog_state = PROG_WAIT_START;
+    
+    TIM_1_Init();
+    TIM_4_Init();
+    
+    Usart1Config();
+    Usart3Config();
+    
+    char buff_local_pc [128] = { 0 };
+    char buff_local_bd [128] = { 0 };    
+    unsigned char readed = 0;
+
+    unsigned short delay = DELAY_INITIAL;
+    unsigned short glitch_delay = GLITCH_INITIAL;
+
+    //libero autobaud
+    Usart1_Autobaud();
+#ifdef GLITCH_DEBUG_ON
+    Usart1Send("\nSend ? to start\n");
+#endif
+    
+    while (1)
+    {
+        switch(prog_state)
+        {
+        case PROG_WAIT_START:
+#ifdef GLITCH_DEBUG_ON            
+            if (Usart1_Autobaud())
+                prog_state = PROG_RESET;
+#else
+            prog_state = PROG_RESET;
+#endif
+            break;
+
+        case PROG_RESET:
+            LED_OFF;
+            RESET_ON;
+            Wait_ms(2);
+            // P0_14_ON;
+            RESET_OFF;
+
+            //delay hasta bootloader
+            TIM_4_Delay_us(delay);
+
+            //glitch
+            SW_ON;
+            TIM_1_OPM_us(glitch_delay);
+            SW_OFF;
+            
+            //reseteo autobaud
+            Usart3Send("?");
+            Wait_ms(3);
+
+#ifdef GLITCH_DEBUG_ON
+            sprintf(buff_local_pc, "d:%dms g:%dus\n", delay, glitch_delay);
+            Usart1Send(buff_local_pc);
+#endif
+            
+            prog_state = PROG_GET_AUTOBAUD;
+            timer_standby = 1000;    //doy 1 segundo de timeout
+            LED_ON;
+            break;
+
+        case PROG_GET_AUTOBAUD:
+            if (usart3_have_data)
+            {
+                unsigned char error = 1;
+                usart3_have_data = 0;
+
+                readed = ReadUsart3Buffer((unsigned char *)buff_local_bd, 126);
+                //el puerto de la placa recien esta arrancando, tiene error, busco la 'S' del synchro
+                for (unsigned char i = 0; i < readed; i++)
+                {
+                    if (*(buff_local_bd + i) == 'S')
+                    {
+                        i = readed;
+                        Usart3Send("Synchronized\r\n");
+                        prog_state = PROG_GET_SYNC_ON_BOARD;
+                        timer_standby = 1000;    //doy 1 segundo mas
+                        error = 0;
+                    }
+                }
+#ifdef GLITCH_DEBUG_ON
+                if (error)
+                    Usart1Send("A");
+                else
+                    Usart1Send("a");
+#endif                
+            }
+
+            if (!timer_standby)
+                prog_state = PROG_WAIT_START;
+            
+            break;
+
+        case PROG_GET_SYNC_ON_BOARD:
+            if (usart3_have_data)
+            {
+                unsigned char error = 1;
+                usart3_have_data = 0;
+
+                readed = ReadUsart3Buffer((unsigned char *)buff_local_bd, 126);
+
+                if (strncmp(buff_local_bd, "OK\r", sizeof("OK\r") - 1) == 0)
+                {
+                    Usart3Send("10000\r\n");
+                    prog_state = PROG_GET_CLK_SYNC_ON_BOARD;
+                    timer_standby = 1000;    //doy 1 segundo mas
+                    error = 0;
+                }
+
+#ifdef GLITCH_DEBUG_ON
+                if (error)
+                    Usart1Send("S");
+                else
+                    Usart1Send("s");
+#endif
+            }
+
+            if (!timer_standby)
+                prog_state = PROG_WAIT_START;
+            
+            break;
+
+        case PROG_GET_CLK_SYNC_ON_BOARD:
+            if (usart3_have_data)
+            {
+                unsigned char error = 1;
+                usart3_have_data = 0;
+
+                readed = ReadUsart3Buffer((unsigned char *)buff_local_bd, 126);
+                if (strncmp(buff_local_bd, "OK\r", sizeof("OK\r") - 1) == 0)
+                {
+                    prog_state = PROG_ON_ISP;
+                    timer_standby = 1000;    //doy 1 segundo mas
+                    error = 0;
+                }
+                
+#ifdef GLITCH_DEBUG_ON
+                if (error)
+                    Usart1Send("C");
+                else
+                    Usart1Send("c");
+#endif
+            }
+
+            if (!timer_standby)
+                prog_state = PROG_RESET;
+            
+            break;
+
+///////////////////////////////////////////////////////////////
+// ACA SEGUN EL PROGRAME TENGO QUE DECIDIR SI CONECTO CON PC //
+//     O INTENTO LEER MEMORIA DEL DISPOSITIVO                //
+///////////////////////////////////////////////////////////////
+
+            
+        case PROG_ON_ISP:
+            //Usart1 es la PC, Usart3 la placa a grabar
+            // if (usart1_have_data)
+            // {
+            //     usart1_have_data = 0;
+            //     readed = ReadUsart1Buffer((unsigned char *)buff_local_pc, 127);
+            //     *(buff_local_pc + readed) = '\n';    //cambio el '\0' por '\n' antes de enviar
+            //     *(buff_local_pc + readed + 1) = '\0';    //ajusto el '\0'
+            //     Usart3Send(buff_local_pc);
+            //     // Usart3SendUnsigned((unsigned char *) buff_local_pc, readed);
+            //     timer_standby = 10000;    //doy 10 segundos mas
+            // }
+
+            // if (usart3_have_data)
+            // {
+            //     usart3_have_data = 0;
+            //     readed = ReadUsart3Buffer((unsigned char *)buff_local_bd, 127);
+            //     *(buff_local_bd + readed) = '\n';    //cambio el '\0' por '\n' antes de enviar
+            //     *(buff_local_bd + readed + 1) = '\0';    //ajusto el '\0'
+            //     Usart1Send(buff_local_bd);
+            //     // Usart1SendUnsigned((unsigned char *) buff_local_bd, readed);
+            //     timer_standby = 10000;    //doy 10 segundos mas
+            // }
+
+            // if (!timer_standby)
+            //     prog_state = PROG_RESET;
+
+            if (!timer_led)
+            {
+                timer_led = 300;
+                if (LED)
+                    LED_OFF;
+                else
+                    LED_ON;
+            }
+
+            break;
+
+        case PROG_ERROR:
+#ifdef GLITCH_DEBUG_ON
+            Usart1Send("\nReseting the part\n");
+            Wait_ms(1000);
+            prog_state = PROG_WAIT_START;
+            Usart1Send("\nSend ? to start\n");
+#else
+            Wait_ms(1000);
+            prog_state = PROG_WAIT_START;
+#endif
+            break;
+        }
+    }
+    
     
 #endif
     

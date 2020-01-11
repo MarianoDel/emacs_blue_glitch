@@ -103,6 +103,12 @@ void Update_TIM3_CH4 (unsigned short a)
     TIM3->CCR4 = a;
 }
 
+void TIM_1_OPM_us (unsigned short a)
+{
+    TIM1->CCR1 = a;
+    ENABLE_TIM1;
+}
+    
 //-------------------------------------------//
 // @brief  TIM configure.
 // @param  None
@@ -146,7 +152,7 @@ void TIM_1_Init (void)
 
     // Enable timer ver UDIS
     //TIM1->DIER |= TIM_DIER_UIE;
-    TIM1->CR1 |= TIM_CR1_CEN;
+    // TIM1->CR1 |= TIM_CR1_CEN;
 
     TIM1->CCR1 = 0;
 }
@@ -216,6 +222,12 @@ void TIM_4_Init(void)
 
     // Enable timer ver UDIS
     TIM4->CR1 |= TIM_CR1_CEN;
+}
+
+void TIM_4_Delay_us (unsigned short a)
+{
+    TIM4->CNT = 0;
+    while (a > TIM4->CNT);
 }
 
 

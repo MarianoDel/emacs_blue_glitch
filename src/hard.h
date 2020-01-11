@@ -30,8 +30,8 @@
 // #define HARD_TEST_MODE_USART3_RX
 // #define HARD_TEST_MODE_TIMER1_OPM
 
-#define GLITCHER_WITH_P0_14
-// #define GLITCHER_ALWAYS_GLITCH
+// #define GLITCHER_WITH_P0_14
+#define GLITCHER_ALWAYS_GLITCH
 
 //-------- Type of Program and Features ----------------
 
@@ -89,7 +89,7 @@ typedef enum {
 
 } resp_t;
 
-
+#ifdef GLITCHER_WITH_P0_14
 typedef enum {
 	PROG_RESET = 0,
 	PROG_WAIT_AUTOBAUD,
@@ -97,6 +97,20 @@ typedef enum {
 	PROG_IN_ISP
 
 } prog_state_t;
+#endif
+
+#ifdef GLITCHER_ALWAYS_GLITCH
+typedef enum {
+	PROG_WAIT_START = 0,
+        PROG_RESET,
+	PROG_GET_AUTOBAUD,
+        PROG_GET_SYNC_ON_BOARD,
+        PROG_GET_CLK_SYNC_ON_BOARD,
+	PROG_ON_ISP,
+        PROG_ERROR
+
+} prog_state_t;
+#endif
 
 
 

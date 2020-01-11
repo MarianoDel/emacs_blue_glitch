@@ -89,6 +89,7 @@ void EnablePreload_MosfetA (void);
 void DisablePreload_MosfetA (void);
 void EnablePreload_MosfetB (void);
 void DisablePreload_MosfetB (void);
+void TIM_1_OPM_us (unsigned short);
 
 void Update_TIM1_CH1 (unsigned short);
 void Update_TIM1_CH2 (unsigned short);
@@ -98,6 +99,7 @@ void Update_TIM3_CH3 (unsigned short);
 void Update_TIM3_CH4 (unsigned short);
 
 void TIM_4_Init (void);
+void TIM_4_Delay_us (unsigned short);
 
 #ifdef STM32F10X_HD
 void TIM6_Init(void);
