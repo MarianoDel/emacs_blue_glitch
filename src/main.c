@@ -309,7 +309,7 @@ int main (void)
 #ifdef GLITCHER_ALWAYS_GLITCH
 #define GLITCH_DEBUG_ON
 #define GLITCH_DEBUG_ON_2    //da mejores avisos al puerto de la PC y traba el comienzo
-// #define GLITCH_DEBUG_CHECK_CRP
+#define GLITCH_DEBUG_CHECK_CRP    //lee memoria para chequear el CRP
     
 #define DELAY_INITIAL    200
 #define DELAY_MAX    300
@@ -354,7 +354,7 @@ int main (void)
         case PROG_RESET:
             LED_OFF;
             RESET_ON;
-            Wait_ms(2);
+            Wait_ms(100);
             // P0_14_ON;
             RESET_OFF;
 
@@ -365,12 +365,13 @@ int main (void)
             SW_ON;
             TIM_1_OPM_us(glitch_delay);
             SW_OFF;
-            
+
+            Wait_ms(5);
             Usart3Send("?");
             Wait_ms(3);
 
 #ifdef GLITCH_DEBUG_ON
-            sprintf(buff_local_pc, "d:%dms g:%dus\n", delay, glitch_delay);
+            sprintf(buff_local_pc, "d:%dus g:%dus\n", delay, glitch_delay);
             Usart1Send(buff_local_pc);
 #endif
             
@@ -479,8 +480,13 @@ int main (void)
                 usart3_have_data = 0;
 
                 readed = ReadUsart3Buffer((unsigned char *)buff_local_bd, 126);
+
+                // *(buff_local_bd + readed) = '\n';    //cambio el '\0' por '\n' antes de enviar
+                // *(buff_local_bd + readed + 1) = '\0';    //ajusto el '\0'
+                // Usart1Send("buf: ");
                 // Usart1Send(buff_local_bd);
-                if (strncmp(buff_local_bd, "OK\r", sizeof("OK\r") - 1) == 0)
+
+                if (strncmp(buff_local_bd, "0\r", sizeof("0\r") - 1) == 0)
                 {
                     prog_state = PROG_GET_AUTOBAUD_ON_PC;
                     timer_standby = 1000;    //doy 1 segundo mas
@@ -626,13 +632,34 @@ int main (void)
         case PROG_ERROR:
 #ifdef GLITCH_DEBUG_ON_2
             Usart1Send("\nReseting the part\n");
-            Wait_ms(1000);
-            prog_state = PROG_WAIT_START;
+            Wait_ms(100);
+            prog_state = PROG_UPDATE_DELAYS;
             Usart1Send("\nSend ? to start\n");
 #else
             Wait_ms(10);
-            prog_state = PROG_WAIT_START;
+            prog_state = PROG_UPDATE_DELAYS;
 #endif
+            break;
+
+        case PROG_UPDATE_DELAYS:
+            if (glitch_delay < GLITCH_MAX)
+                glitch_delay++;
+            else if (delay < DELAY_MAX)
+            {
+                glitch_delay = GLITCH_INITIAL;
+                delay++;
+            }
+            else
+            {
+                glitch_delay = GLITCH_INITIAL;
+                delay = DELAY_INITIAL;
+            }
+            
+            prog_state = PROG_WAIT_START;
+            break;
+            
+        default:
+            prog_state = PROG_WAIT_START;
             break;
         }
     }

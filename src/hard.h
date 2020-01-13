@@ -112,7 +112,8 @@ typedef enum {
         PROG_GET_SYNC_ON_PC_1,
         PROG_GET_CLK_SYNC_ON_PC,
 	PROG_ON_ISP,
-        PROG_ERROR
+        PROG_ERROR,
+        PROG_UPDATE_DELAYS
 
 } prog_state_t;
 #endif
