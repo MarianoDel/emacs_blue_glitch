@@ -461,7 +461,7 @@ int main (void)
 
 #ifdef GLITCHER_ALWAYS_GLITCH
 #define GLITCH_DEBUG_ON
-#define GLITCH_DEBUG_ON_2    //da mejores avisos al puerto de la PC y traba el comienzo
+// #define GLITCH_DEBUG_ON_2    //da mejores avisos al puerto de la PC y traba el comienzo
 #define GLITCH_DEBUG_CHECK_CRP    //lee memoria para chequear el CRP
     
 #define DELAY_INITIAL    200
@@ -634,10 +634,10 @@ int main (void)
 
                 readed = ReadUsart3Buffer((unsigned char *)buff_local_bd, 126);
 
-                *(buff_local_bd + readed) = '\n';    //cambio el '\0' por '\n' antes de enviar
-                *(buff_local_bd + readed + 1) = '\0';    //ajusto el '\0'
-                Usart1Send("buf: ");
-                Usart1Send(buff_local_bd);
+                // *(buff_local_bd + readed) = '\n';    //cambio el '\0' por '\n' antes de enviar
+                // *(buff_local_bd + readed + 1) = '\0';    //ajusto el '\0'
+                // Usart1Send("buf: ");
+                // Usart1Send(buff_local_bd);
 
                 if (strncmp(buff_local_bd, "0\r", sizeof("0\r") - 1) == 0)
                 {
