@@ -31,7 +31,9 @@
 // #define HARD_TEST_MODE_TIMER1_OPM
 
 // #define GLITCHER_WITH_P0_14
+// #define GLITCHER_SYNCHRONIZE_TO_SERIAL
 #define GLITCHER_ALWAYS_GLITCH
+
 
 //-------- Type of Program and Features ----------------
 
@@ -107,6 +109,8 @@ typedef enum {
         PROG_GET_SYNC_ON_BOARD,
         PROG_GET_CLK_SYNC_ON_BOARD,
         PROG_MEM_READ,
+        PROG_MEM_READ_1,
+        PROG_MEM_READ_2,
         PROG_GET_AUTOBAUD_ON_PC,
         PROG_GET_SYNC_ON_PC_0,
         PROG_GET_SYNC_ON_PC_1,
@@ -114,6 +118,19 @@ typedef enum {
 	PROG_ON_ISP,
         PROG_ERROR,
         PROG_UPDATE_DELAYS
+
+} prog_state_t;
+#endif
+
+#ifdef GLITCHER_SYNCHRONIZE_TO_SERIAL
+typedef enum {
+	PROG_WAIT_START = 0,
+        PROG_RESET,
+	PROG_GET_AUTOBAUD,
+        PROG_GET_SYNC_ON_BOARD,
+        PROG_GET_CLK_SYNC_ON_BOARD,
+	PROG_ON_ISP,
+        PROG_ERROR
 
 } prog_state_t;
 #endif
