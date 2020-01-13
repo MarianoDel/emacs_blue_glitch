@@ -793,8 +793,6 @@ int main (void)
                 *(buff_local_pc + readed) = '\n';    //cambio el '\0' por '\n' antes de enviar
                 *(buff_local_pc + readed + 1) = '\0';    //ajusto el '\0'
                 Usart3Send(buff_local_pc);
-                // Usart3SendUnsigned((unsigned char *) buff_local_pc, readed);
-                timer_standby = 10000;    //doy 10 segundos mas
             }
 
             if (usart3_have_data)
@@ -804,12 +802,7 @@ int main (void)
                 *(buff_local_bd + readed) = '\n';    //cambio el '\0' por '\n' antes de enviar
                 *(buff_local_bd + readed + 1) = '\0';    //ajusto el '\0'
                 Usart1Send(buff_local_bd);
-                // Usart1SendUnsigned((unsigned char *) buff_local_bd, readed);
-                timer_standby = 10000;    //doy 10 segundos mas
             }
-
-            if (!timer_standby)
-                prog_state = PROG_RESET;
 
             if (!timer_led)
             {

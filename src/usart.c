@@ -17,6 +17,7 @@
 #include <string.h>
 
 
+#define SIZEOF_TXDATA_USART1    SIZEOF_TXDATA_LONG
 /* Externals ------------------------------------------------------------------*/
 extern volatile unsigned char usart1_have_data;
 extern volatile unsigned char usart2_have_data;
@@ -33,7 +34,7 @@ extern volatile unsigned char usart5_have_data;
 volatile unsigned char * ptx1;
 volatile unsigned char * ptx1_pckt_index;
 volatile unsigned char * prx1;
-volatile unsigned char tx1buff[SIZEOF_TXDATA];
+volatile unsigned char tx1buff[SIZEOF_TXDATA_USART1];
 volatile unsigned char rx1buff[SIZEOF_RXDATA];
 
 volatile unsigned char autobaud = 0;
@@ -48,9 +49,13 @@ volatile unsigned char rx2buff[SIZEOF_RXDATA];
 //--- USART3 ---//
 volatile unsigned char * ptx3;
 volatile unsigned char * ptx3_pckt_index;
-volatile unsigned char * prx3;
 volatile unsigned char tx3buff[SIZEOF_TXDATA];
-volatile unsigned char rx3buff[SIZEOF_RXDATA];
+
+volatile unsigned char * prx3_b0;
+volatile unsigned char * prx3_b1;
+volatile unsigned char rx3buff0[SIZEOF_RXDATA];
+volatile unsigned char rx3buff1[SIZEOF_RXDATA];
+volatile unsigned char usart3_current_buffer = 0;
 
 #ifdef STM32F10X_HD
 //--- UART4 ---//
@@ -113,7 +118,7 @@ void Usart1Send (char * send)
 
 void Usart1SendUnsigned (unsigned char * send, unsigned char size)
 {
-    if ((ptx1_pckt_index + size) < &tx1buff[SIZEOF_TXDATA])
+    if ((ptx1_pckt_index + size) < &tx1buff[SIZEOF_TXDATA_USART1])
     {
         memcpy((unsigned char *)ptx1_pckt_index, send, size);
         ptx1_pckt_index += size;
@@ -176,7 +181,7 @@ void USART1_IRQHandler (void)
     {
         if (USART1->SR & USART_SR_TXE)
         {
-            if ((ptx1 < &tx1buff[SIZEOF_TXDATA]) && (ptx1 < ptx1_pckt_index))
+            if ((ptx1 < &tx1buff[SIZEOF_TXDATA_USART1]) && (ptx1 < ptx1_pckt_index))
             {
                 USART1->DR = *ptx1;
                 ptx1++;
@@ -338,7 +343,9 @@ void Usart3Config(void)
     //---- Acomodo punteros ----
     ptx3 = tx3buff;
     ptx3_pckt_index = tx3buff;
-    prx3 = rx3buff;
+    prx3_b0 = rx3buff0;
+    prx3_b1 = rx3buff1;
+    usart3_current_buffer = 0;
 
     //---- Configuro velocidad y opciones del puerto
     USART3->BRR = USART3_9600;
@@ -380,18 +387,36 @@ unsigned char ReadUsart3Buffer (unsigned char * bout, unsigned short max_len)
 {
     unsigned int len;
 
-    len = prx3 - rx3buff;
+    if (usart3_current_buffer == 1)    //estoy llenando buffer1, hago copia del 0
+    {
+        len = prx3_b0 - rx3buff0;
 
-    if (len < max_len)
-        memcpy(bout, (unsigned char *) rx3buff, len);
+        if (len < max_len)
+            memcpy(bout, (unsigned char *) rx3buff0, len);
+        else
+        {
+            memcpy(bout, (unsigned char *) rx3buff0, max_len);
+            len = max_len;
+        }
+
+        //ajusto punteros de rx luego de la copia
+        prx3_b0 = rx3buff0;
+    }
     else
     {
-        memcpy(bout, (unsigned char *) rx3buff, max_len);
-        len = max_len;
-    }
+        len = prx3_b1 - rx3buff1;
 
-    //ajusto punteros de rx luego de la copia
-    prx3 = rx3buff;
+        if (len < max_len)
+            memcpy(bout, (unsigned char *) rx3buff1, len);
+        else
+        {
+            memcpy(bout, (unsigned char *) rx3buff1, max_len);
+            len = max_len;
+        }
+        
+        //ajusto punteros de rx luego de la copia
+        prx3_b1 = rx3buff1;
+    }
 
     return (unsigned char) len;
 }
@@ -405,25 +430,49 @@ void USART3_IRQHandler (void)
     {
         dummy = (unsigned short) USART3->DR & 0x01FF;
 
-        if (prx3 < &rx3buff[SIZEOF_RXDATA - 1])
+        //veo que buffer usar
+        if (usart3_current_buffer == 0)
         {
-            // USART3->DR = (unsigned char) dummy;    //para debug
-            // USART1->DR = (unsigned char) dummy;    //para debug
-
-            // if ((dummy == '\n') || (dummy == '\r') || (dummy == 26))		//26 es CTRL-Z
-            if (dummy == '\n')
+            if (prx3_b0 < &rx3buff0[SIZEOF_RXDATA - 1])
             {
-                *prx3 = '\0';
-                usart3_have_data = 1;
+                // USART3->DR = (unsigned char) dummy;    //para debug
+                // USART1->DR = (unsigned char) dummy;    //para debug
+
+                // if ((dummy == '\n') || (dummy == '\r') || (dummy == 26))		//26 es CTRL-Z
+                if (dummy == '\n')
+                {
+                    *prx3_b0 = '\0';
+                    usart3_have_data = 1;
+                    usart3_current_buffer = 1;
+                }
+                else
+                {
+                    *prx3_b0 = dummy;
+                    prx3_b0++;
+                }
             }
             else
-            {
-                *prx3 = dummy;
-                prx3++;
-            }
+                prx3_b0 = rx3buff0;    //soluciona problema bloqueo con garbage
         }
         else
-            prx3 = rx3buff;    //soluciona problema bloqueo con garbage
+        {
+            if (prx3_b1 < &rx3buff1[SIZEOF_RXDATA - 1])
+            {
+                if (dummy == '\n')
+                {
+                    *prx3_b1 = '\0';
+                    usart3_have_data = 1;
+                    usart3_current_buffer = 0;
+                }
+                else
+                {
+                    *prx3_b1 = dummy;
+                    prx3_b1++;
+                }
+            }
+            else
+                prx3_b1 = rx3buff1;    //soluciona problema bloqueo con garbage
+        }
     }
 
     /* USART in Transmit mode -------------------------------------------------*/

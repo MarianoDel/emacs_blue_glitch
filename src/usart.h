@@ -17,6 +17,7 @@
 
 //---- Configurations Defines --------------------
 #define SIZEOF_TXDATA        128
+#define SIZEOF_TXDATA_LONG        1024
 #define SIZEOF_RXDATA        128
 
 //se pueden colocar ifdef para cada usart y habilitar o no cada una
