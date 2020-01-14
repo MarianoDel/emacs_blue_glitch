@@ -464,8 +464,8 @@ int main (void)
 // #define GLITCH_DEBUG_ON_2    //da mejores avisos al puerto de la PC y traba el comienzo
 #define GLITCH_DEBUG_CHECK_CRP    //lee memoria para chequear el CRP
     
-#define DELAY_INITIAL    200
-#define DELAY_MAX    300
+#define DELAY_INITIAL    400    //una placa entro en 430us
+#define DELAY_MAX    600
 #define GLITCH_INITIAL    2
 #define GLITCH_MAX    5
 
